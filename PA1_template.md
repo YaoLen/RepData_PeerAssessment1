@@ -1,12 +1,8 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 ## Loading required libraries
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+```r
 #Check and install libraries if neccessary
 if(!"dplyr" %in% rownames(installed.packages()))
         install.packages("dplyr")
@@ -29,7 +25,8 @@ library(knitr)
 ## Loading and preprocessing the data
 Downloading data from [course web site]('https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) and loading it.  
 
-```{r, echo=TRUE}
+
+```r
 if(!file.exists("activity.csv")){
         if(!file.exists("repdata_data_activity.zip")) #check if original file is already downloaded
         {
@@ -54,23 +51,30 @@ activityData <- activityData %>%
 ```
 
 ## What is mean total number of steps taken per day?
-```{r, echo=TRUE}
+
+```r
 #summarize total number of steps per day
 activitySummary<-activityData %>% group_by(date,weekDay) %>% summarize(totalSteps=sum(steps),numNA=sum(is.na(steps)))
 
 #draw histogramm
 ggplot(data=activitySummary, aes(totalSteps)) + geom_histogram(binwidth=1000) + ggtitle("Histogram of total number of steps per day")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png) 
+
+```r
 options(scipen = 6) #set number of digits that can be printed before switching to scientific notation.
 meanTotalSteps<- round(mean(activitySummary$totalSteps,na.rm=TRUE),2)
 medianTotalSteps<-median(activitySummary$totalSteps,na.rm=TRUE)
 ```
 
-Mean total number of steps taken per day is `r meanTotalSteps`.
-Median total number of steps taken per day is `r medianTotalSteps`.
+Mean total number of steps taken per day is 10766.19.
+Median total number of steps taken per day is 10765.
 
 
 ## What is the average daily activity pattern?
-```{r, echo=TRUE}
+
+```r
 intervalActivitySummary<-activityData %>% group_by(interval) %>% summarize(avgSteps=mean(steps,na.rm=TRUE), numNA=sum(is.na(steps)))
 
 ggplot(data = intervalActivitySummary, aes(interval,avgSteps)) +
@@ -78,22 +82,29 @@ ggplot(data = intervalActivitySummary, aes(interval,avgSteps)) +
         scale_x_datetime(breaks = date_breaks("120 mins"), labels = date_format("%H:%M")) +
         ylab("Agerage number of steps per 5 minute interval") +
         xlab("Time of day")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
+
+```r
 maxAvgSteps<-max(intervalActivitySummary$avgSteps) # get peak avgSteps value
 maxAvgStepsInterval<-intervalActivitySummary %>% filter(avgSteps==maxAvgSteps) #find peak interval
 periodStart<-format(maxAvgStepsInterval$interval,'%H:%M') #get start of period
 periodEnd<-format(maxAvgStepsInterval$interval+300,'%H:%M') #calculate end of period
 ```
 
-The maximum number of steps is in the interval between `r periodStart` and `r periodEnd`.  
+The maximum number of steps is in the interval between 08:35 and 08:40.  
 
 ## Imputing missing values
-```{r,echo=TRUE}
+
+```r
 totalMissing<-nrow(activityData %>% filter(is.na(steps)))
 ```
-The total number of missing values is `r totalMissing` (out of `r nrow(activityData)`).
+The total number of missing values is 2304 (out of 17568).
 Let's see how missing values are distributed among the dates.
 
-```{r,echo=TRUE}
+
+```r
 weekDayActivitySummary<-activityData %>% 
         filter(is.na(steps)==TRUE) %>% 
         group_by(date,weekDay) %>%
@@ -101,9 +112,23 @@ weekDayActivitySummary<-activityData %>%
 kable(weekDayActivitySummary)
 ```
 
+
+
+date         weekDay    numNA
+-----------  --------  ------
+2012-10-01   Mon          288
+2012-10-08   Mon          288
+2012-11-01   Thu          288
+2012-11-04   Sun          288
+2012-11-09   Fri          288
+2012-11-10   Sat          288
+2012-11-14   Wed          288
+2012-11-30   Fri          288
+
 As we can see there are a number of days when all 288 records are missing. That means that average over interval will be fair. 
 Moreover, there are no particular days of week when too many values are missing. Let's see if we need to take weekday into account. Let's see if moving pattern differs among the week days.  
-```{r, echo=TRUE, message=FALSE, fig.width=10, fig.height=5}
+
+```r
 filteredData<-activityData%>%filter(!is.na(steps))
 
 ggplot(data = filteredData, aes(interval,steps)) +
@@ -112,12 +137,14 @@ ggplot(data = filteredData, aes(interval,steps)) +
         scale_x_datetime(breaks = date_breaks("720 mins"), labels = date_format("%H:%M")) +
         ylab("Number of steps per 5 minute interval") +
         xlab("Time of day")
-
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
 
 As we see, Friday, Saturday and Sunday have somewhat similar pattern, that differs significantly from other days.
 So, let's average missing values on per interval, per weekday basis.
-```{r,echo=TRUE}
+
+```r
 theAverages<-filteredData %>% group_by(interval,weekDay) %>% summarize(avgSteps=round(mean(steps)))%>%ungroup()
 getCorrectAverage<-function(naRow,theAverages)
 {
@@ -133,29 +160,35 @@ for(i in c(1:nrow(activityData)))
 {
         filledActivityData$steps[i]<-getCorrectAverage(activityData[i,],theAverages)
 }
-
 ```
 
 
 ### What is the new mean total number of steps taken per day?
-```{r, echo=TRUE}
+
+```r
 #summarize total number of steps per day
 activitySummary<-filledActivityData %>% group_by(date,weekDay) %>% summarize(totalSteps=sum(steps),numNA=sum(is.na(steps)))
 
 #draw histogramm
 ggplot(data=activitySummary, aes(totalSteps)) + geom_histogram(binwidth=1000) + ggtitle("Histogram of total number of steps per day")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+
+```r
 options(scipen = 6) #set number of digits that can be printed before switching to scientific notation.
 meanTotalSteps<- round(mean(activitySummary$totalSteps,na.rm=TRUE),2)
 medianTotalSteps<-median(activitySummary$totalSteps,na.rm=TRUE)
 ```
 
-New mean total number of steps taken per day is `r meanTotalSteps`.
-New median total number of steps taken per day is `r medianTotalSteps`.
+New mean total number of steps taken per day is 10821.1.
+New median total number of steps taken per day is 11015.
 
 As we see, the average and median of the total number of steps per day increased over the initial measurement.
 
 ## Are there differences in activity patterns between weekdays and weekends?
-```{r,echo=TRUE}
+
+```r
 filledActivityData<-filledActivityData %>% mutate(is_weekend=as.numeric(weekDay=='Sat'|weekDay=='Sun'),is_weekend=factor(is_weekend,labels=c("weekend","weekday")))
 
 intervalActivitySummary<-filledActivityData %>% group_by(interval, is_weekend) %>% summarize(avgSteps=mean(steps,na.rm=TRUE), numNA=sum(is.na(steps)))
@@ -167,7 +200,7 @@ ggplot(data = intervalActivitySummary, aes(interval,avgSteps)) +
         ylab("Agerage number of steps per 5 minute interval") +
         xlab("Time of day") +
         ggtitle("Number of steps on weekends vs weekdays")
-
-
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-10-1.png) 
 
